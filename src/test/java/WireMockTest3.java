@@ -1,5 +1,4 @@
 import com.github.tomakehurst.wiremock.WireMockServer;
-import io.restassured.http.ContentType;
 import org.hamcrest.Matchers;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -16,7 +15,7 @@ public class WireMockTest3 {
     public void setup() {
         wireMockServer = new WireMockServer(8089);
         wireMockServer.start();
-        testWireMock();
+        setupStub();
     }
 
     @AfterMethod
@@ -25,7 +24,7 @@ public class WireMockTest3 {
     }
 
 
-    public void testWireMock() {
+    public void setupStub() {
         wireMockServer.stubFor(get(urlPathEqualTo("/endpoint"))
                 .withQueryParam("param", equalTo("1"))
                 .willReturn(aResponse()
@@ -39,30 +38,29 @@ public class WireMockTest3 {
                         .withBody("{\"key2\": \"value2\"}")));
 
         wireMockServer.stubFor(post(urlPathEqualTo("/soap/service"))
-                .withHeader("Content-Type", equalTo("text/plain;charset=UTF-8"))
-                .withRequestBody(containing("""
-                        <employeeId>1</employeeId>
-                        """))
+                .withHeader("Content-Type", equalTo("text/xml; charset=UTF-8"))
+                .withRequestBody(equalTo("<employeeId>1</employeeId>"))
                 .willReturn(aResponse()
-                        .withHeader("Content-Type", "text/plain;charset=UTF-8")
+                        .withHeader("Content-Type", "text/xml; charset=UTF-8")
                         .withStatus(200)
-                        .withBody("<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-                                "   <SOAP-ENV:Header/>\n" +
-                                "   <SOAP-ENV:Body>\n" +
-                                "      <ns2:getEmployeeByIdResponse xmlns:ns2=\"http://interfaces.soap.springboot.example.com\">\n" +
-                                "         <ns2:employeeInfo>\n" +
-                                "            <ns2:employeeId>1</ns2:employeeId>\n" +
-                                "            <ns2:name>nika</ns2:name>\n" +
-                                "            <ns2:department>s7</ns2:department>\n" +
-                                "            <ns2:phone>1345678</ns2:phone>\n" +
-                                "            <ns2:address>bleecker street</ns2:address>\n" +
-                                "            <ns2:salary>1000.00</ns2:salary>\n" +
-                                "            <ns2:email>n@gmail.com</ns2:email>\n" +
-                                "            <ns2:birthDate>1900-10-15</ns2:birthDate>\n" +
-                                "         </ns2:employeeInfo>\n" +
-                                "      </ns2:getEmployeeByIdResponse>\n" +
-                                "   </SOAP-ENV:Body>\n" +
-                                "</SOAP-ENV:Envelope>")));
+                        .withBody("""
+                                <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+                                   <SOAP-ENV:Header/>
+                                   <SOAP-ENV:Body>
+                                      <ns2:getEmployeeByIdResponse xmlns:ns2="http://interfaces.soap.springboot.example.com">
+                                         <ns2:employeeInfo>
+                                            <ns2:employeeId>1</ns2:employeeId>
+                                            <ns2:name>nika</ns2:name>
+                                            <ns2:department>s7</ns2:department>
+                                            <ns2:phone>1345678</ns2:phone>
+                                            <ns2:address>bleecker street</ns2:address>
+                                            <ns2:salary>1000.00</ns2:salary>
+                                            <ns2:email>n@gmail.com</ns2:email>
+                                            <ns2:birthDate>1900-10-15</ns2:birthDate>
+                                         </ns2:employeeInfo>
+                                      </ns2:getEmployeeByIdResponse>
+                                   </SOAP-ENV:Body>
+                                </SOAP-ENV:Envelope>""")));
     }
 
     @Test
@@ -93,18 +91,14 @@ public class WireMockTest3 {
 
     @Test
     public void testSOAPService() {
-        String soapRequest = """
-                <employeeId>1</employeeId>
-                """;
-
         given()
-                .body(soapRequest)
+                .body("<employeeId>1</employeeId>")
                 .when()
-                .post("http://localhost:8089/soap/service")
-                .then()
+                .contentType("text/xml; charset=UTF-8")
+                .post("http://localhost:8089/soap/service").then().log().all()
                 .assertThat()
                 .statusCode(200)
-                .contentType("text/plain;charset=UTF-8")
+                .contentType("text/xml; charset=UTF-8")
                 .body("Envelope.Body.getEmployeeByIdResponse.employeeInfo.employeeId", Matchers.equalTo("1"))
                 .body("Envelope.Body.getEmployeeByIdResponse.employeeInfo.name", Matchers.equalTo("nika"))
                 .body("Envelope.Body.getEmployeeByIdResponse.employeeInfo.department", Matchers.equalTo("s7"))
