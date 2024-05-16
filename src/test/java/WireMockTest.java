@@ -1,6 +1,7 @@
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.restassured.response.Response;
+import org.hamcrest.Matchers;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -57,4 +58,6 @@ public class WireMockTest {
         System.out.println(title);
         Assert.assertEquals("example glossary", title);
     }
+
+
 }
